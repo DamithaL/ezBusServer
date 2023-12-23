@@ -1,0 +1,32 @@
+{
+  "name": "ezbus",
+  "version": "1.0.0",
+  "description": "A mobile based realtime public bus tracking and contactless fare payment system developed for the Degree of Master of Information Technology",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DamithaL/EZBusServer.git"
+  },
+  "keywords": [
+    "authentication",
+    "database",
+    "express",
+    "mobile-application",
+    "web-framework",
+    "mongodb"
+  ],
+  "author": "Damitha Liyanaarachchi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DamithaL/EZBusServer/issues"
+  },
+  "homepage": "https://github.com/DamithaL/EZBusServer#readme",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^6.3.0",
+    "stripe": "^14.10.0"
+  }
+}
