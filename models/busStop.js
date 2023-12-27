@@ -6,7 +6,8 @@ const busStopSchema = new mongoose.Schema({
   stopName: { type: String, required: true },
   location: {
     latitude: { type: Number },
-    longitude: { type: Number }
+    longitude: { type: Number },
+    timestamp: { type: Date, default: Date.now }
   },
 
   // Add a reference to the 'routeStop' model

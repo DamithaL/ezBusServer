@@ -6,6 +6,7 @@ const routeStopSchema = new mongoose.Schema({
   stopId: { type: String, ref: 'BusStop', required: true },
   sequenceNumber: { type: Number, required: true },
   fareLevel: { type: Number, required: true },
+  timestamp: { type: Date, default: Date.now }
 });
 
 // Define a unique compound index to enforce the uniqueness of the pair (routeId, stopId)

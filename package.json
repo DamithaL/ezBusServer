@@ -25,8 +25,14 @@
   },
   "homepage": "https://github.com/DamithaL/EZBusServer#readme",
   "dependencies": {
+    "axios": "^1.6.2",
+    "body-parser": "^1.20.2",
+    "crypto-js": "^4.2.0",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
-    "stripe": "^14.10.0"
+    "nodemailer": "^6.9.7",
+    "stripe": "^14.10.0",
+    "uuid": "^9.0.1"
   }
 }

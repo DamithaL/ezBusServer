@@ -4,6 +4,7 @@ const { mongoose } = require('../db');
 const routeSchema = new mongoose.Schema({
   routeId: { type: String, unique: true, required: true },
   routeName: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
 
   // Add a reference to the 'routeStop' model
   //routeStops: [{ type: mongoose.Schema.Types.ObjectId, ref: 'RouteStop' }],

@@ -10,7 +10,8 @@ const busSchema = new mongoose.Schema({
   },
   routeId: { type: String },
   busColor: { type: String },
-  direction: { type: String } // Add direction property
+  direction: { type: String }, // Add direction property
+  timestamp: { type: Date, default: Date.now }
 },
 );
 

@@ -172,8 +172,8 @@ router.post('/get-location/get-updated-locations', async (req, res) => {
      const busLocations = buses.map(bus => {
       // Assuming bus.location contains latitude and longitude
       const location = bus.location; 
-      const timeStamp = new Date(); // You may replace this with the actual timestamp
-      
+      const timeStamp = new Date() ; // You may replace this with the actual timestamp
+    
       // You might get the farePrice from some other source based on your logic
      // const farePrice = 10.00; // Replace this with your logic to get farePrice
 

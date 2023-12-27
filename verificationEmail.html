@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EZBus Passenger - Email Verification</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4b0;
+            padding: 20px;
+            text-align: center;
+            display: block;
+            justify-content: center;
+            /* Center the content horizontally */
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            margin: 0 auto;
+            /* Center the container horizontally */
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            display: block;
+            justify-content: center;
+        }
+
+        h1 {
+            color: #34acdb;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .verification-code {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            
+        }
+
+        .verification-digit {
+            width: 40px;
+            height: 40px;
+            background-color: #34acdb;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 15px;
+            margin: 0 5px;
+            line-height: 40px;
+            vertical-align: middle;
+            text-align: center;
+           
+        }
+
+        .note1,
+        .note2 {
+            font-size: 14px;
+            color: #a5a5a5;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Welcome to EZBus Passenger!</h1>
+        <p>Thank you for choosing EZBus Passenger. To complete your registration, use the following verification code:</p>
+        <div class="verification-code" style="align-self: center;">
+            <span class="verification-digit">{{0}}</span>
+            <span class="verification-digit">{{1}}</span>
+            <span class="verification-digit">{{2}}</span>
+            <span class="verification-digit">{{3}}</span>
+            <span class="verification-digit">{{4}}</span>
+            <span class="verification-digit">{{5}}</span>
+        </div>
+        <p class="note1">This code is valid for 1 hour. Please do not share it with others.</p>
+        <p class="note2">If you didn't make this request, just ignore this mail.</p>
+    </div>
+
+</body>
+
+</html>
