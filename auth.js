@@ -1,5 +1,5 @@
 // auth.js
-// For user authentication - Login and Sign up
+// For user authentication - Sign up, Verification and Login
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -14,22 +14,14 @@ const { mongoose } = require("./db"); // Import mongoose from db.js
 const saltRounds = 12;
 
 const router = express.Router();
-
-const userSchema = new mongoose.Schema({
-	email: { type: String, unique: true, required: true },
-	name: { type: String, required: true },
-	password: { type: String, required: true },
-	isVerified: { type: Boolean, default: false },
-	timestamp: { type: Date, default: Date.now },
-});
-
-const User = mongoose.model("User", userSchema);
-
 router.use(bodyParser.json());
 
-// Helper function to send verification email
+const {Conductor,Manager,User} = require("./models/schema");
 
-// Function to read the HTML template file
+
+//--------------------------------------- HELPER FUNCTIONS ---------------------------------------//
+
+//------------ read the HTML template file ------------//
 const readHTMLTemplate = (verificationCode) => {
 	verificationCode = String(verificationCode);
 
@@ -49,13 +41,14 @@ const readHTMLTemplate = (verificationCode) => {
 	return htmlTemplate;
 };
 
-// Function to generate a random 6-digit verification code
+//------------ generate a random 6-digit verification code ------------//
 const generateVerificationCode = () => {
 	const min = 100000; // Minimum 6-digit number
 	const max = 999999; // Maximum 6-digit number
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
+//------------ send verification email ------------//
 const sendVerificationEmail = async (email, verificationCode) => {
 	console.log("\nsendVerificationEmail: started");
 
@@ -84,9 +77,12 @@ const sendVerificationEmail = async (email, verificationCode) => {
 	console.log("Verification email sent to: " + email);
 };
 
-//---------------- sign up ----------------//
-// Signup endpoint
-router.post("/signup", async (req, res) => {
+//------------------------------------------------------ END POINTS ------------------------------------------------------//
+
+//------------------------------------- PASSENGER -------------------------------------//
+
+//---------------- sign up passenger ----------------//
+router.post("/signup/passenger", async (req, res) => {
 	console.log("An user trying to sign up");
 	try {
 		const { name, email, password } = req.body;
@@ -132,8 +128,6 @@ router.post("/signup", async (req, res) => {
 		const verificationCode = generateVerificationCode();
 		console.log("\nverificationCode: " + verificationCode);
 
-		const htmlTemplate = readHTMLTemplate(verificationCode);
-
 		try {
 			// Send verification email
 			await sendVerificationEmail(newUser.email, verificationCode);
@@ -156,7 +150,7 @@ router.post("/signup", async (req, res) => {
 
 		// Generate a JWT token for the new user
 		//const token = jwt.sign({ email: email }, 'your_secret_key', { expiresIn: '1h' });
-		console.log('verificationCode: '+ verificationCode);
+		console.log("verificationCode: " + verificationCode);
 		return res.status(201).json({ verificationCode: verificationCode });
 	} catch (error) {
 		console.log(error);
@@ -164,9 +158,10 @@ router.post("/signup", async (req, res) => {
 	}
 });
 
-//---------------- verify user ----------------//
+//---------------- verify passenger ----------------//
+
 // Endpoint to update user status to "verified" when provided with an email
-router.post("/verify-user", async (req, res) => {
+router.post("/verify/passenger", async (req, res) => {
 	const { email } = req.body;
 
 	// Check if the email is provided
@@ -206,9 +201,9 @@ router.post("/verify-user", async (req, res) => {
 	return res.status(200).json({ message: "User status updated to verified." });
 });
 
-//---------------- login ----------------//
-// Login endpoint
-router.post("/login", async (req, res) => {
+//---------------- login passenger----------------//
+
+router.post("/login/passenger", async (req, res) => {
 	console.log("An user trying to login");
 	try {
 		const { email, password } = req.body;
@@ -230,8 +225,11 @@ router.post("/login", async (req, res) => {
 			return res.status(401).send("Incorrect password");
 		}
 
-		// // Create a JWT token for authentication
-		// const token = jwt.sign({ email: user.email }, 'your-secret-key', { expiresIn: '1h' });
+		// Check if the email is verified
+		if (!user.isVerified) {
+			console.log("User is not verified");
+			return res.status(406).send("Not verified");
+		}
 
 		// res.json({ token });
 		console.log("Login successful");
@@ -250,8 +248,353 @@ router.post("/login", async (req, res) => {
 	}
 });
 
+//------------------------------------- CONDUCTOR -------------------------------------//
+
+//---------------- sign up conductor ----------------//
+router.post("/signup/conductor", async (req, res) => {
+	console.log("a conductor is trying to sign up");
+	try {
+		const { name, email, password, busNumber } = req.body;
+		console.log(
+			"request body: " +
+				"name: " +
+				name +
+				", email: " +
+				email +
+				", password: " +
+				password +
+				", busNumber: " +
+				busNumber
+		);
+
+		// Check if the email is already registered
+		const existingUser = await Conductor.findOne({ email });
+
+		if (existingUser) {
+			if (existingUser.isVerified) {
+				console.log("Email already registered");
+				return res.status(208).json({ message: "Already registered" });
+			} else {
+				const deletionUser = await Conductor.deleteOne({
+					email: email,
+				});
+
+				if (deletionUser.deletedCount > 0) {
+					console.log("Unverfied user deleted successfully");
+				} else {
+					console.log("Failed to delete unverfied user");
+					return res.status(500).send("Failed to delete unverfied user");
+				}
+			}
+		} 
+
+		// Hash the password
+		const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+		// Create a new user
+		const newUser = new Conductor({ name, email, password: hashedPassword });
+		console.log("User created successfully");
+
+		// Generate a verification token
+		const verificationCode = generateVerificationCode();
+		console.log("\nverificationCode: " + verificationCode);
+
+		try {
+			// Send verification email
+			await sendVerificationEmail(newUser.email, verificationCode);
+		} catch (error) {
+			console.log(error);
+			return res.status(500).json({ error });
+		}
+
+		console.log(
+			"sendVerificationEmail Done: " +
+				"email: " +
+				newUser.email +
+				" verificationToken: " +
+				verificationCode
+		);
+
+		// Save the user to the database
+		await newUser.save();
+		console.log("newUser: " + JSON.stringify(newUser));
+
+		// Generate a JWT token for the new user
+		//const token = jwt.sign({ email: email }, 'your_secret_key', { expiresIn: '1h' });
+		console.log("verificationCode: " + verificationCode);
+		return res.status(201).json({ verificationCode: verificationCode });
+	} catch (error) {
+		console.log(error);
+		return res.status(500).json({ error: error.message });
+	}
+});
+
+//---------------- verify conductor ----------------//
+
+// Endpoint to update user status to "verified" when provided with an email
+router.post("/verify/conductor", async (req, res) => {
+	const { email } = req.body;
+
+	// Check if the email is provided
+	if (!email) {
+		console.log("Email is required in the request body.");
+		return res
+			.status(400)
+			.json({ error: "Email is required in the request body." });
+	}
+
+	// Find the user by email (replace this with database query)
+	const user = await Conductor.findOne({ email });
+
+	// Check if the user exists
+	if (!user) {
+		console.log("User not found.");
+		return res.status(404).json({ error: "User not found." });
+	}
+
+	// Update user status to "verified"
+
+	const verifiedUser = await Conductor.findOneAndUpdate(
+		{ email },
+		{
+			$set: {
+				isVerified: true,
+				timestamp: Date.now(),
+			},
+		},
+		{ new: true }
+	);
+
+	console.log(verifiedUser);
+
+	// Send a response
+	console.log("User status updated to verified.");
+	return res.status(200).json({ message: "User status updated to verified." });
+});
+
+//---------------- login conductor----------------//
+
+router.post("/login/conductor", async (req, res) => {
+	console.log("a conductor is trying to login");
+	try {
+		const { email, password } = req.body;
+		console.log(
+			"request body: " + "email: " + email + ", password: " + password
+		);
+
+		const user = await Conductor.findOne({ email });
+
+		if (!user) {
+			console.log("Incorrect email");
+			return res.status(401).send("Incorrect email");
+		}
+
+		const isPasswordValid = await bcrypt.compare(password, user.password);
+
+		if (!isPasswordValid) {
+			console.log("Incorrect password");
+			return res.status(401).send("Incorrect password");
+		}
+
+		// Check if the email is verified
+		if (!user.isVerified) {
+			console.log("User is not verified");
+			return res.status(406).send("Not verified");
+		}
+
+		// res.json({ token });
+		console.log("Login successful");
+		console.log("user: " + user);
+
+		const objToSend = {
+			name: user.name,
+			email: user.email,
+		};
+		console.log("objToSend: " + JSON.stringify(objToSend));
+
+		return res.status(200).send(JSON.stringify(objToSend));
+	} catch (error) {
+		console.log(error);
+		return res.status(500).json({ error: error.message });
+	}
+});
+
+
+
+//------------------------------------- MANAGER -------------------------------------//
+
+//---------------- sign up manager ----------------//
+router.post("/signup/manager", async (req, res) => {
+	console.log("a manager is trying to sign up");
+	try {
+		const { name, email, password } = req.body;
+		console.log(
+			"request body: " +
+				"name: " +
+				name +
+				", email: " +
+				email +
+				", password: " +
+				password
+		);
+
+		// Check if the email is already registered
+		const existingUser = await Manager.findOne({ email });
+
+		if (existingUser) {
+			if (existingUser.isVerified) {
+				console.log("Email already registered");
+				return res.status(208).json({ message: "Already registered" });
+			} else {
+				const deletionUser = await Manager.deleteOne({
+					email: email,
+				});
+
+				if (deletionUser.deletedCount > 0) {
+					console.log("Unverfied user deleted successfully");
+				} else {
+					console.log("Failed to delete unverfied user");
+					return res.status(500).send("Failed to delete unverfied user");
+				}
+			}
+		} 
+
+		// Hash the password
+		const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+		// Create a new user
+		const newUser = new Manager({ name, email, password: hashedPassword });
+		console.log("User created successfully");
+
+		// Generate a verification token
+		const verificationCode = generateVerificationCode();
+		console.log("\nverificationCode: " + verificationCode);
+
+		try {
+			// Send verification email
+			await sendVerificationEmail(newUser.email, verificationCode);
+		} catch (error) {
+			console.log(error);
+			return res.status(500).json({ error });
+		}
+
+		console.log(
+			"sendVerificationEmail Done: " +
+				"email: " +
+				newUser.email +
+				" verificationToken: " +
+				verificationCode
+		);
+
+		// Save the user to the database
+		await newUser.save();
+		console.log("newUser: " + JSON.stringify(newUser));
+
+		// Generate a JWT token for the new user
+		//const token = jwt.sign({ email: email }, 'your_secret_key', { expiresIn: '1h' });
+		console.log("verificationCode: " + verificationCode);
+		return res.status(201).json({ verificationCode: verificationCode });
+	} catch (error) {
+		console.log(error);
+		return res.status(500).json({ error: error.message });
+	}
+});
+
+//---------------- verify manager ----------------//
+
+// Endpoint to update user status to "verified" when provided with an email
+router.post("/verify/manager", async (req, res) => {
+	const { email } = req.body;
+
+	// Check if the email is provided
+	if (!email) {
+		console.log("Email is required in the request body.");
+		return res
+			.status(400)
+			.json({ error: "Email is required in the request body." });
+	}
+
+	// Find the user by email (replace this with database query)
+	const user = await Manager.findOne({ email });
+
+	// Check if the user exists
+	if (!user) {
+		console.log("User not found.");
+		return res.status(404).json({ error: "User not found." });
+	}
+
+	// Update user status to "verified"
+
+	const verifiedUser = await Manager.findOneAndUpdate(
+		{ email },
+		{
+			$set: {
+				isVerified: true,
+				timestamp: Date.now(),
+			},
+		},
+		{ new: true }
+	);
+
+	console.log(verifiedUser);
+
+	// Send a response
+	console.log("User status updated to verified.");
+	return res.status(200).json({ message: "User status updated to verified." });
+});
+
+//---------------- login manager ----------------//
+
+router.post("/login/manager", async (req, res) => {
+	console.log("An user trying to login");
+	try {
+		const { email, password } = req.body;
+		console.log(
+			"request body: " + "email: " + email + ", password: " + password
+		);
+
+		const user = await Manager.findOne({ email });
+
+		if (!user) {
+			console.log("Incorrect email");
+			return res.status(401).send("Incorrect email");
+		}
+
+		const isPasswordValid = await bcrypt.compare(password, user.password);
+
+		if (!isPasswordValid) {
+			console.log("Incorrect password");
+			return res.status(401).send("Incorrect password");
+		}
+
+		// Check if the email is verified
+		if (!user.isVerified) {
+			console.log("User is not verified");
+			return res.status(406).send("Not verified");
+		}
+
+		// res.json({ token });
+		console.log("Login successful");
+		console.log("user: " + user);
+
+		const objToSend = {
+			name: user.name,
+			email: user.email,
+		};
+		console.log("objToSend: " + JSON.stringify(objToSend));
+
+		return res.status(200).send(JSON.stringify(objToSend));
+	} catch (error) {
+		console.log(error);
+		return res.status(500).json({ error: error.message });
+	}
+});
+
+
+
+
 //---------------- protected route ----------------//
-// Protected route example
+
 router.get("/protected", (req, res) => {
 	// Middleware to check the JWT token before accessing the protected route
 	const token = req.header("Authorization");
@@ -272,4 +615,4 @@ router.get("/protected", (req, res) => {
 	});
 });
 
-module.exports = { router, User };
+module.exports = router;

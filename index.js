@@ -1,8 +1,10 @@
 // index.js
 const express = require('express');
 const app = express();
+const https = require('https');
+const fs = require('fs');
 const punycode = require('punycode/');
-const {router: authRoutes, User} = require('./auth');
+const authRoutes = require('./auth');
 const locationRoutes = require('./location');
 const fareRoutes = require('./fareCalculator');
 const paymentRouter = require("./payment");
@@ -12,6 +14,8 @@ const paymentRouterStripe = require("./pay_stripe");
 const { connectToDatabase, mongoose } = require('./db'); // Import connectToDatabase and mongoose from db.js
 connectToDatabase();
 
+
+
 // Use modules
 app.use('/auth', authRoutes);
 app.use('/location', locationRoutes); // Mount the updated location module
@@ -20,8 +24,21 @@ app.use('/payment', paymentRouter);
 app.use('/pay_stripe', paymentRouterStripe);
 
 
+const options = {
+  key: fs.readFileSync('localhost.key'),
+  cert: fs.readFileSync('localhost.crt'),
+};
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+
+const server = https.createServer(options, app);
+
+app.get('/welcome', (req, res) => {
+  console.log(`Hi!`);
+  res.send('Hello, secure world!');
+});
+
+//const PORT = process.env.PORT || 3000;
+const PORT = 3000;
+server.listen(PORT, '0.0.0.0' ,() => {
+  console.log(`Server listening on port ${PORT}`);
 });
