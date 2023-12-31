@@ -51,7 +51,7 @@ const mongoose = require('mongoose');
 //   }
 // }
 
-const { MongoClient } = require("mongodb");
+//const { MongoClient } = require("mongodb");
 const username = encodeURIComponent("damithaliyanaarachchi");
 const password = encodeURIComponent("ezbusmongo93");
 const cluster = "cluster0.x8bk2yi.mongodb.net";
@@ -59,10 +59,12 @@ const authSource = "admin";
 const authMechanism = "SCRAM";
 let uri =
   `mongodb+srv://${username}:${password}@${cluster}/?authSource=${authSource}&authMechanism=${authMechanism}`;
-const client = new MongoClient(uri);
+//const client = new MongoClient(uri);
 async function connectToDatabase()  {
   try {
-    await client.connect();
+  // await client.connect();
+   
+    await mongoose.connect(uri);
     console.log('Connected to MongoDB');
   } catch (error) {
     console.error('Error connecting to MongoDB:', error.message);
