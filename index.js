@@ -21,7 +21,6 @@ app.use('/auth', authRoutes);
 app.use('/location', locationRoutes); // Mount the updated location module
 app.use('/fareCalculator', fareRoutes);
 app.use('/payment', paymentRouter);
-app.use('/pay_stripe', paymentRouterStripe);
 
 
 // const options = {
