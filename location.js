@@ -3,7 +3,8 @@ const express = require('express');
 const router = express.Router();
 const geolib = require('geolib');
 
-const Bus = require('./models/schema'); // Assuming your bus model is in a 'models' directory
+
+const {BusFleet, BusLocation, Bus} = require('./models/schema'); // Assuming your bus model is in a 'models' directory
 
 router.use(express.json());
 

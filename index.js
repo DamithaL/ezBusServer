@@ -32,10 +32,15 @@ app.use('/pay_stripe', paymentRouterStripe);
 
 // const server = https.createServer(options, app);
 
-app.get('/welcome', (req, res) => {
-  console.log(`Hi!`);
-  res.send('Hello, Jananie!');
+// app.get('/welcome', (req, res) => {
+//   console.log(`Hi!`);
+//   res.send('Hello, Jananie!');
+// });
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'WelcomePage', 'index.html'));
 });
+
 
 //const PORT = process.env.PORT || 3000;
 const PORT = 3000;
