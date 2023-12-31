@@ -24,7 +24,7 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 
 async function connectToDatabase() {
   try {
-    const uri = process.env.MONGO_URL || "mongodb+srv://damithaliyanaarachchi:enz5mzTc9tF1FzKX@cluster0.x8bk2yi.mongodb.net/<database>?retryWrites=true&w=majority";
+    const uri = process.env.MONGO_URL || "mongodb+srv://damithaliyanaarachchi:enz5mzTc9tF1FzKX@cluster0.x8bk2yi.mongodb.net/?retryWrites=true&w=majority&authSource=admin";
     // Use the MongoDB Cloud client URI from the environment variable or replace it with your URI
 
     const client = new MongoClient(uri, {
