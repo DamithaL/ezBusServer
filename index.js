@@ -24,13 +24,13 @@ app.use('/payment', paymentRouter);
 app.use('/pay_stripe', paymentRouterStripe);
 
 
-const options = {
-  key: fs.readFileSync('localhost.key'),
-  cert: fs.readFileSync('localhost.crt'),
-};
+// const options = {
+//   key: fs.readFileSync('localhost.key'),
+//   cert: fs.readFileSync('localhost.crt'),
+// };
 
 
-const server = https.createServer(options, app);
+// const server = https.createServer(options, app);
 
 app.get('/welcome', (req, res) => {
   console.log(`Hi!`);
@@ -39,6 +39,6 @@ app.get('/welcome', (req, res) => {
 
 //const PORT = process.env.PORT || 3000;
 const PORT = 3000;
-server.listen(PORT, '0.0.0.0' ,() => {
+app.listen(PORT, '0.0.0.0' ,() => {
   console.log(`Server listening on port ${PORT}`);
 });
