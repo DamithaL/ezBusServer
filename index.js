@@ -40,6 +40,8 @@ app.use('/payment', paymentRouter);
 //   res.sendFile(path.join(__dirname, 'WelcomePage', 'index.html'));
 // });
 
+app.use(express.static('public'));
+
 // Define a fallback route for unknown paths
 app.use((req, res) => {
   res.status(404).send('Page not found!');
