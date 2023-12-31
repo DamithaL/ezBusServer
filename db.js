@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 
 async function connectToDatabase() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/ezbus');
+    await mongoose.connect(process.env.MONGO_URL);
+   // await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/ezbus');
     //, {
       // useNewUrlParser: true,
       // useUnifiedTopology: true,
