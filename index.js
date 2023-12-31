@@ -8,7 +8,7 @@ const authRoutes = require('./auth');
 const locationRoutes = require('./location');
 const fareRoutes = require('./fareCalculator');
 const paymentRouter = require("./payment");
-const paymentRouterStripe = require("./pay_stripe");
+const path = require('path');
 
 // Connect to MongoDB
 const { connectToDatabase, mongoose } = require('./db'); // Import connectToDatabase and mongoose from db.js
