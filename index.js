@@ -34,7 +34,7 @@ app.use('/pay_stripe', paymentRouterStripe);
 
 app.get('/welcome', (req, res) => {
   console.log(`Hi!`);
-  res.send('Hello, secure world!');
+  res.send('Hello, Jananie!');
 });
 
 //const PORT = process.env.PORT || 3000;
