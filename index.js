@@ -36,10 +36,14 @@ app.use('/payment', paymentRouter);
 //   res.send('Hello, Jananie!');
 // });
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'WelcomePage', 'index.html'));
-});
+// app.get('/', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'WelcomePage', 'index.html'));
+// });
 
+// Define a fallback route for unknown paths
+app.use((req, res) => {
+  res.status(404).send('Page not found!');
+});
 
 //const PORT = process.env.PORT || 3000;
 const PORT = 3000;
