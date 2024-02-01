@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
 const { mongoose } = require("./db"); // Import mongoose from db.js
-const { authRoutes, User } = require("./auth");
+const { Conductor, Manager, User, BusFleet, Bus } = require("./models/schema");
 const jwt = require("jsonwebtoken");
 
 const bodyParser = require("body-parser");
@@ -19,40 +19,27 @@ const generateProvisionalOrderId = () => {
 const ticketOrderSchema = new mongoose.Schema({
 	ticket: {
 		routeNumber: { type: String, required: true },
+		routeName: { type: String, required: true },
 		arrivalStopName: { type: String, required: true },
 		departureStopName: { type: String, required: true },
+		farePrice: { type: Number, required: true },
 	},
 	paymentNo: { type: String },
 	orderId: { type: String, unique: true, required: true },
-	userEmail: { type: String, required: true },
+	userEmail: { type: String, ref: "User", required: true },
 	purchasedDate: { type: Date },
 	isRedeemed: { type: Boolean },
-	busId: { type: String },
+	busId: { type: String, ref: "Bus" },
 	redeemedDate: { type: Date },
 	timestamp: { type: Date, default: Date.now },
 });
 
 const TicketOrder = mongoose.model("TicketOrder", ticketOrderSchema);
 
-// Save a TicketOrder to the database
-const saveTicketOrder = async (ticketOrderData) => {
-	try {
-		const ticketOrder = new TicketOrder(ticketOrderData);
-		const savedTicketOrder = await ticketOrder.save();
-
-		console.log(
-			"TicketOrder saved successfully:",
-			JSON.stringify(savedTicketOrder)
-		);
-		return savedTicketOrder;
-	} catch (error) {
-		console.error("Error saving TicketOrder:", error);
-		throw error;
-	}
-};
+//-------------------------------------------------- INITIATE --------------------------------------------------//
 
 // END POINT TO INITIATE PAYMENT
-router.post("/payhere/initiate", async (req, res) => {
+router.post("/initiate", async (req, res) => {
 	const ticketOrderRequest = req.body;
 
 	console.log("payhere/initiate");
@@ -60,7 +47,7 @@ router.post("/payhere/initiate", async (req, res) => {
 
 	if (await isTicketOrderValid(ticketOrderRequest)) {
 		console.log("isValidPaymentRequest: true");
-		updateTicketOrder(ticketOrderRequest, res);
+		saveTicketOrder(ticketOrderRequest, res);
 	} else {
 		console.log("isValidPaymentRequest: false");
 		return res
@@ -83,57 +70,79 @@ async function isTicketOrderValid(ticketOrderRequest) {
 	}
 }
 
-function updateTicketOrder(ticketOrderRequest, res) {
-	const { ticket, userEmail } = ticketOrderRequest;
+async function saveTicketOrder(ticketOrderRequest, res) {
+	try {
+		console.log("updateTicketOrder: started");
+		const { ticket, userEmail } = ticketOrderRequest;
 
-	const orderId = generateProvisionalOrderId();
-	const amount = ticket.farePrice;
-	const itemsDescription =
-		"Route: " +
-		ticket.routeNumber +
-		" From: " +
-		ticket.arrivalStopName +
-		" To: " +
-		ticket.departureStopName;
+		const orderId = generateProvisionalOrderId();
+		const amount = ticket.farePrice;
+		const itemsDescription =
+			"Route Number: " +
+			ticket.routeNumber +
+			" Route Name: " +
+			ticket.routeName +
+			" From: " +
+			ticket.arrivalStopName +
+			" To: " +
+			ticket.departureStopName +
+			" Fare Price: " +
+			ticket.farePrice;
 
-	const newPayHereOrder = {
-		merchantId: merchantId,
-		orderId: orderId,
-		amount: amount,
-		itemsDescription: itemsDescription,
-	};
+		const newPayHereOrder = {
+			merchantId: merchantId,
+			orderId: orderId,
+			amount: amount,
+			itemsDescription: itemsDescription,
+		};
 
-	console.log("Payment initiation successful");
-	console.log(
-		"newPayHereOrder: ",
-		newPayHereOrder + JSON.stringify(newPayHereOrder)
-	);
-	return res.status(201).send(JSON.stringify(newPayHereOrder));
+		// Save the new ticket order to the database
+		const ticketOrderData = {
+			ticket: {
+				routeNumber: ticket.routeNumber,
+				routeName: ticket.routeName,
+				arrivalStopName: ticket.arrivalStopName,
+				departureStopName: ticket.departureStopName,
+				farePrice: ticket.farePrice,
+			},
+			paymentNo: null,
+			userEmail: userEmail,
+			orderId: orderId,
+			purchasedDate: null,
+			isRedeemed: false,
+			busId: "null",
+			redeemedDate: null,
+		};
 
-	// Save the new ticket order to the database
-	const ticketOrderData = {
-		ticket: {
-			routeNumber: ticket.routeNumber,
-			arrivalStopName: ticket.arrivalStopName,
-			departureStopName: ticket.departureStopName,
-		},
-		paymentNo: null,
-		userEmail: userEmail,
-		orderId: orderId,
-		purchasedDate: null,
-		isRedeemed: false,
-		busId: "null",
-		redeemedDate: null,
-	};
+		const existingOrder = await TicketOrder.findOne({ orderId: orderId });
+		if (existingOrder) {
+			return res.status(400).json({ error: "Duplicate orderId detected" });
+		}
+		const ticketOrder = new TicketOrder(ticketOrderData);
+		const savedTicketOrder = await ticketOrder.save();
 
-	saveTicketOrder(ticketOrderData);
+		console.log(
+			"TicketOrder saved successfully:",
+			JSON.stringify(savedTicketOrder)
+		);
+		console.log("Payment initiation successful");
+		console.log(
+			"newPayHereOrder: ",
+			newPayHereOrder + JSON.stringify(newPayHereOrder)
+		);
+		return res.status(201).send(JSON.stringify(newPayHereOrder));
+	} catch (error) {
+		return res.status(500).send("Error initiating payment");
+	}
 }
+
+//-------------------------------------------------- PAID --------------------------------------------------//
 
 // Endpoint to receive payment status updates from PayHere
 // This will only receive the statuses if the users paid on their end
 // Other instances such as cancelling or going back will not come here
-router.post("/payhere/notify", async (req, res) => {
-	console.log("/payhere/notify: NOTIFIED");
+router.post("/notify", async (req, res) => {
+	console.log("Payment is successful");
 	const paymentStatus = req.body;
 
 	console.log("paymentStatus: " + JSON.stringify(paymentStatus));
@@ -172,19 +181,23 @@ router.post("/payhere/notify", async (req, res) => {
 async function isValidPaymentStatus(paymentStatus) {
 	console.log("isValidPaymentStatus: " + JSON.stringify(paymentStatus));
 	const orderId = paymentStatus.orderId;
+	console.log("orderId: " + orderId);
 	if (orderId !== null && orderId !== "") {
 		const order = await TicketOrder.findOne({ orderId: orderId });
 		if (order) {
 			console.log("order found");
 			return true;
+		} else {
+			console.log("order not found");
+			return false;
 		}
-	} else {
-		return false;
 	}
 }
 
-router.post("/payhere/cancel", async (req, res) => {
-	console.log("/payhere/cancel: NOTIFIED");
+//-------------------------------------------------- CANCEL --------------------------------------------------//
+
+router.post("/cancel", async (req, res) => {
+	console.log("Payment is cancelled");
 	const paymentStatus = req.body;
 
 	console.log("paymentStatus: " + JSON.stringify(paymentStatus));
@@ -208,27 +221,134 @@ router.post("/payhere/cancel", async (req, res) => {
 	}
 });
 
-router.post("/isTicketRedeemed", async (req, res) => {
+//-------------------------------------------------- VERIFY --------------------------------------------------//
+
+//---------------- for conductor ----------------//
+
+router.post("/verify-ticket", async (req, res) => {
+	console.log("reqeust for verify-ticket received");
+	console.log("reqeust body: " + JSON.stringify(req.body));
 	try {
 		// Extract orderId and userEmail from the request body
-		const { orderId, userEmail } = req.body;
-
+		const { orderId, hashedEmail } = req.body;
+		console.log("orderId: " + orderId, "hashedEmail: " + hashedEmail);
 		// Check if orderId and userEmail are provided
-		if (!orderId || !userEmail) {
+		if (!orderId || orderId === "" || !hashedEmail || hashedEmail === "") {
 			return res.status(400).json({
-				error: "orderId and userEmail are required in the request body.",
+				error: "orderId and email are required in the request body.",
 			});
 		}
-
-		// Check if the ticket has already been redeemed
-		const existingOrder = await TicketOrder.findOne({ orderId, userEmail });
+		// Find the ticket order
+		const existingOrder = await TicketOrder.findOne({ orderId: orderId });
 
 		if (!existingOrder) {
+			console.log("existingOrder not found");
 			return res
 				.status(404)
 				.json({ valid: false, message: "Ticket not found." });
 		}
 
+		// Check if the hashed email matches
+		const existingHashedEmail = generateHash(existingOrder.userEmail);
+		if (hashedEmail !== existingHashedEmail) {
+			console.log("email does not match");
+			console.log(
+				"newHashedEmail: " + hashedEmail,
+				"existingHashedEmail: " + existingHashedEmail
+			);
+			return res
+				.status(401)
+				.json({ valid: false, message: "Email does not match." });
+		}
+
+		// Check if the ticket has been paid
+		if (!existingOrder.paymentNo) {
+			console.log("existingOrder not paid");
+			return res
+				.status(408)
+				.json({ valid: false, message: "Ticket not paid." });
+		}
+
+		// Check if the ticket has already been redeemed
+		if (existingOrder.isRedeemed) {
+			const redeemedDate = existingOrder.redeemedDate;
+			console.log("ticket already redeemed");
+			return res.status(401).json({
+				valid: false,
+				redeemedDate: redeemedDate,
+				message: "Ticket has already been redeemed.",
+			});
+		} else {
+			console.log("ticket not redeemed");
+			const ticket = {
+				orderId: existingOrder.orderId,
+				routeNumber: existingOrder.ticket.routeNumber,
+				routeName: existingOrder.ticket.routeName,
+				arrivalStopName: existingOrder.ticket.arrivalStopName,
+				departureStopName: existingOrder.ticket.departureStopName,
+				farePrice: existingOrder.ticket.farePrice,
+			};
+			console.log("ticket sent: " + JSON.stringify(ticket));
+			return res.status(200).json({ valid: true, ticket: ticket });
+		}
+	} catch (error) {
+		console.error("Error validating ticket redemption:", error);
+		return res
+			.status(500)
+			.json({ valid: false, message: "Error validating ticket redemption." });
+	}
+});
+
+//---------------- HASH ----------------//
+
+const crypto = require("crypto");
+
+function generateHash(input) {
+	const hash = crypto.createHash("sha256");
+	hash.update(input);
+	return hash.digest("hex");
+}
+
+//---------------- for passengers ----------------//
+
+router.post("/isTicketRedeemed", async (req, res) => {
+	try {
+		console.log("reqeust for isTicketRedeemed received");
+		console.log("reqeust body: " + JSON.stringify(req.body));
+
+		// Extract orderId and userEmail from the request body
+		const { orderId, hashedEmail } = req.body;
+		console.log("orderId: " + orderId, "hashedEmail: " + hashedEmail);
+		// Check if orderId and userEmail are provided
+		if (!orderId || orderId === "" || !hashedEmail || hashedEmail === "") {
+			return res.status(400).json({
+				error: "orderId and email are required in the request body.",
+			});
+		}
+		// Find the ticket order
+		const existingOrder = await TicketOrder.findOne({ orderId: orderId });
+
+		if (!existingOrder) {
+			console.log("existingOrder not found");
+			return res
+				.status(404)
+				.json({ valid: false, message: "Ticket not found." });
+		}
+
+		// Check if the hashed email matches
+		const existingHashedEmail = generateHash(existingOrder.userEmail);
+		if (hashedEmail !== existingHashedEmail) {
+			console.log("email does not match");
+			console.log(
+				"newHashedEmail: " + hashedEmail,
+				"existingHashedEmail: " + existingHashedEmail
+			);
+			return res
+				.status(401)
+				.json({ valid: false, message: "Email does not match." });
+		}
+
+		// Check if the ticket has already been redeemed
 		if (existingOrder.isRedeemed) {
 			const redeemedDate = existingOrder.redeemedDate;
 			console.error("redeemedDate: ", redeemedDate);
@@ -248,38 +368,53 @@ router.post("/isTicketRedeemed", async (req, res) => {
 	}
 });
 
-router.post("/redeemTicket", async (req, res) => {
+//-------------------------------------------------- REDEEM --------------------------------------------------//
+
+router.post("/redeem-ticket", async (req, res) => {
+	console.log("reqeust for redeem-ticket received");
+	console.log("reqeust body: " + JSON.stringify(req.body));
 	try {
 		// Extract orderId and userEmail from the request body
-		const { orderId, userEmail } = req.body;
+		const { orderId, busRegNumber } = req.body;
 
 		// Check if orderId and userEmail are provided
-		if (!orderId || !userEmail) {
+		if (!orderId || !busRegNumber) {
+			console.log("orderId: " + orderId, "busRegNumber: " + busRegNumber);
 			return res.status(400).json({
-				error: "orderId and userEmail are required in the request body.",
+				error: "orderId and busRegNumber are required in the request body.",
 			});
 		}
 
 		// Check if the ticket has already been redeemed
-		const existingOrder = await TicketOrder.findOne({ orderId, userEmail });
+		const existingOrder = await TicketOrder.findOne({ orderId });
 
 		if (!existingOrder) {
+			console.log("existingOrder not found");
 			return res
 				.status(404)
-				.json({ valid: false, message: "Ticket not found." });
+				.json({ message: "Ticket not found." });
 		}
 
 		if (existingOrder.isRedeemed) {
+			console.log("existingOrder already redeemed");
 			return res
 				.status(403)
-				.json({ valid: false, message: "Ticket has already been redeemed." });
+				.json({ message: "Ticket has already been redeemed." });
+		}
+
+		// Find the bus
+		const bus = await Bus.findOne({ busRegNumber: busRegNumber });
+		if (!bus) {
+			console.log("bus not found");
+			return res.status(404).json({ error: "Bus not found" });
 		}
 
 		// Update the ticket order to mark it as redeemed
 		const redeemedOrder = await TicketOrder.findOneAndUpdate(
-			{ orderId, userEmail, isRedeemed: false },
+			{ orderId },
 			{
 				$set: {
+					busId: bus.busId,
 					isRedeemed: true,
 					redeemedDate: Date.now(),
 				},
@@ -288,21 +423,18 @@ router.post("/redeemTicket", async (req, res) => {
 		);
 
 		if (redeemedOrder) {
-			return res.status(200).json({
-				valid: true,
-				message: "Ticket redemption verified successfully.",
-			});
+			console.log("Ticket redeemed successfully: ", redeemedOrder);
+			return res.status(200).json({ message: "Ticket redeemed successfully." });
 		} else {
-			return res.status(500).json({
-				valid: false,
-				message: "Ticket redemption verification failed.",
-			});
+			return res
+				.status(500)
+				.json({ message: "Ticket redemption verification failed." });
 		}
 	} catch (error) {
 		console.error("Error validating ticket redemption:", error);
 		return res
 			.status(500)
-			.json({ valid: false, message: "Error validating ticket redemption." });
+			.json({ message: "Error validating ticket redemption." });
 	}
 });
 

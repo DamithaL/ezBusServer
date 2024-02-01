@@ -166,22 +166,23 @@ router.post("/addRouteStop", async (req, res) => {
 
 // endpoint to get fare price
 router.get(
-	"/get-fare/:routeId/:startStopName/:endStopName",
+	"/get-fare/:routeNumber/:routeName/:startStopName/:endStopName",
 	async (req, res) => {
 		try {
-			const routeId = req.params.routeId.toLowerCase();
+			const routeNumber = req.params.routeNumber.toLowerCase();
+			const routeName = req.params.routeName.toLowerCase();
 			const startStopName = req.params.startStopName.toLowerCase();
 			const endStopName = req.params.endStopName.toLowerCase();
 
 			console.log(
-				`Fare price check request received:`,
-				routeId,
-				startStopName,
-				endStopName
+				`Fare price check request received: ${routeNumber}, ${routeName}, ${startStopName}, ${endStopName}`
 			);
 
-			// Find the routeId
-			const route = await RouteStop.findOne({ routeId });
+			// Find the route
+			const route = await Route.findOne({
+				routeNumber: routeNumber,
+				routeName: routeName,
+			});
 			if (!route) {
 				console.log("Route not found");
 				return res.status(404).json({ error: "Route not found" });
@@ -207,7 +208,7 @@ router.get(
 
 			// Find the corresponding entry in RouteStop based on routeId and stopId
 			const routeStopForStartStop = await RouteStop.findOne({
-				routeId: routeId,
+				routeId: route.routeId,
 				stopId: startStop.stopId,
 			});
 
@@ -224,7 +225,7 @@ router.get(
 
 			// Find the corresponding entry in RouteStop based on routeId and stopId
 			const routeStopForEndStop = await RouteStop.findOne({
-				routeId: routeId,
+				routeId: route.routeId,
 				stopId: endStop.stopId,
 			});
 

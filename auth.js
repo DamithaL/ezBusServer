@@ -16,8 +16,8 @@ const saltRounds = 12;
 const router = express.Router();
 router.use(bodyParser.json());
 
-const {Conductor,Manager,User} = require("./models/schema");
-
+const { Conductor, Manager, User, BusFleet } = require("./models/schema");
+const e = require("express");
 
 //--------------------------------------- HELPER FUNCTIONS ---------------------------------------//
 
@@ -286,7 +286,7 @@ router.post("/signup/conductor", async (req, res) => {
 					return res.status(500).send("Failed to delete unverfied user");
 				}
 			}
-		} 
+		}
 
 		// Hash the password
 		const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -419,8 +419,6 @@ router.post("/login/conductor", async (req, res) => {
 	}
 });
 
-
-
 //------------------------------------- MANAGER -------------------------------------//
 
 //---------------- sign up manager ----------------//
@@ -457,7 +455,7 @@ router.post("/signup/manager", async (req, res) => {
 					return res.status(500).send("Failed to delete unverfied user");
 				}
 			}
-		} 
+		}
 
 		// Hash the password
 		const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -546,7 +544,7 @@ router.post("/verify/manager", async (req, res) => {
 //---------------- login manager ----------------//
 
 router.post("/login/manager", async (req, res) => {
-	console.log("An user trying to login");
+	console.log("a manager is trying to login");
 	try {
 		const { email, password } = req.body;
 		console.log(
@@ -589,8 +587,6 @@ router.post("/login/manager", async (req, res) => {
 		return res.status(500).json({ error: error.message });
 	}
 });
-
-
 
 
 //---------------- protected route ----------------//
